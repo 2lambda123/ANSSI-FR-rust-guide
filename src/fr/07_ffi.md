@@ -713,11 +713,20 @@ impl Drop for Foo {
 > par l'utilisation d'un *handler* de `panic`.
 
 Lorsque le langage externe exploite des ressources allouées depuis le côté Rust,
-il est encore plus difficile d'offrir quelque garantie qui soit.
+il est encore plus difficile d'offrir quelque garantie que ce soit. Il y a
+notamment deux choses à surveiller. D'une part pour limiter les risques de
+débordement sur la pile, le langage externe ne devrait pas avoir accès à des
+pointeurs sur la pile Rust.
 
-En C par exemple, il n'y a pas de moyen simple qui permette de vérifier que le
-destructeur correspondant est appelé. Il est possible d'utiliser des *callbacks*
-pour assurer que la libération est effectivement faite.
+> ### Règle {{#check FFI-MEM-NOSTACKPTR | Non-exportation de pointeurs sur la pile vers le langage externe }}
+>
+> Dans un développent sécurisé en Rust, il ne doit pas y avoir de pointeurs de
+> données allouées sur la pile transmis de Rust vers le langage externe.
+
+D'autre part, souvent le langage externe ne fournit pas de moyen simple qui
+permette de vérifier que le destructeur correspondant est appelé. Il est
+possible d'utiliser des *callbacks* pour assurer que la libération est
+effectivement faite.
 
 Le code Rust suivant est un exemple **unsafe du point de vue des threads** d'une
 API compatible avec le C qui fournit une *callback* pour assurer la libération

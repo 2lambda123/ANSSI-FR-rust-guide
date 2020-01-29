@@ -656,11 +656,18 @@ impl Drop for Foo {
 > panic handler.
 
 When the foreign language is the one exploiting Rust allocated resources, it is
-a lot more difficult to offer any guarantee.
+a lot more difficult to offer any guarantee. There are notably two things to
+watch for. First, in order to limit the risks of stack buffer overflow,
+the foreign langage should not have access to Rust stack pointers.
 
-In C for instance there is no easy way to check that the appropriate destructor
-is checked. A possible approach is to exploit callbacks to ensure that the
-reclamation is done.
+> ### Rule {{#check FFI-MEM-NOSTACKPTR | Do not provide pointers to stack to foreign langage }}
+>
+> In a secure Rust developement, there must be no pointer nor reference to
+> stack-allocated data passed from Rust to the foreign langage.
+
+Second, often the foreign language provide no easy way to check that the
+appropriate destructor is called. A possible approach is to exploit callbacks to
+ensure that the reclamation is done.
 
 The following Rust code is a **thread-unsafe** example of a C-compatible API
 that provide callback to ensure safe resource
