@@ -354,7 +354,7 @@ an `unsafe` block or function.
 > pointer must check their validity beforehand.
 > In particular, pointers must be checked to be non-null before any use.
 >
-> Stronger approaches are advisable when possible. They includes checking
+> Stronger approaches are advisable when possible. They include checking
 > pointers against known valid memory range or tagging (or signing) pointers
 > (particularly applicable if the pointed value is only manipulated from Rust).
 
@@ -648,7 +648,7 @@ impl Drop for Foo {
 
 > ### Warning
 >
-> Because panics may lead to not running the `Drop::drop` method this solution
+> Because panics may lead to not running the `Drop::drop` method, this solution
 > is not sufficient for sensitive deallocation (such as wiping sensitive data)
 > except if the code is guaranteed to never panic.
 >
