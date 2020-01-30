@@ -690,59 +690,51 @@ impl Drop for XtraResource {
 
 pub mod c_api {
     use super::XtraResource;
-    use std::panic::catch_unwind;
+    use std::panic::{catch_unwind, AssertUnwindSafe};
     use std::sync::atomic::{AtomicU32, Ordering};
 
     const INVALID_TAG: u32 = 0;
     const VALID_TAG: u32 = 0xDEAD_BEEF;
     const ERR_TAG: u32 = 0xDEAF_CAFE;
 
-    static COUNTER: AtomicU32 = AtomicU32::new(0);
-
     pub struct CXtraResource {
         tag: AtomicU32, // to detect accidental reuse
-        id: AtomicU32, // to quasi-identify the object
         inner: XtraResource,
     }
 
     #[no_mangle]
     pub unsafe extern "C" fn xtra_with(cb: unsafe extern "C" fn(*mut CXtraResource) -> ()) {
-        let inner = if let Ok(res) = catch_unwind(XtraResource::new) {
+        let inner = if let Ok(res) = catch_unwind(AssertUnwindSafe(XtraResource::new)) {
             res
         } else {
 #             println!("cannot allocate resource");
             return;
         };
-        let id = COUNTER.fetch_add(1, Ordering::SeqCst);
         let tag = VALID_TAG;
 
-        // Use heap memory and do not provide pointer to stack to C code!
-        let mut boxed = Box::new(CXtraResource {
+        let mut wrapped = CXtraResource {
             tag: AtomicU32::new(tag),
-            id: AtomicU32::new(id),
             inner
-        });
+        };
 
-#         println!("running the callback on {:p}", boxed);
-        cb(boxed.as_mut() as *mut CXtraResource);
+#         println!("running the callback on {:p}", &wrapped);
+        cb(&mut wrapped as *mut CXtraResource);
 
-        let new_id = boxed.id.load(Ordering::SeqCst);
         // prevent accidental reuse
-        let new_tag = boxed.tag.swap(INVALID_TAG, Ordering::SeqCst);
-
-        if new_id == id && (new_tag == VALID_TAG || new_tag == ERR_TAG) {
-#             println!("freeing {:p}", boxed);
-            // implicit boxed drop
+        let new_tag = wrapped.tag.swap(INVALID_TAG, Ordering::SeqCst);
+        if new_tag == VALID_TAG || new_tag == ERR_TAG {
+#             println!("freeing {:p}", &wrapped);
+            // implicit drop of wrappped
         } else {
-#             println!("forgetting {:p}", boxed);
+#             println!("forgetting {:p}", &wrapped);
             // (...) error handling (should be fatal)
-            std::mem::forget(boxed); // boxed is corrupted it should not be
+            std::mem::forget(wrapped);
         }
     }
 
     #[no_mangle]
     pub unsafe extern "C" fn xtra_dosthg(cxtra: *mut CXtraResource, arg: u32) {
-        let do_it = || {
+        let do_it = move || {
             if let Some(cxtra) = cxtra.as_mut() {
                 if cxtra.tag.load(Ordering::SeqCst) == VALID_TAG {
 #                     println!("doing something with {:p}", cxtra);
