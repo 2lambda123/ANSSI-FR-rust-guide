@@ -42,18 +42,55 @@ un projet.
 > connues dans les dépendances d'un projet.
 
 [cargo-audit]: https://github.com/RustSec/cargo-audit
+## Vérification de la supply-chain
 
-<!-- ## Code *unsafe* dans les bibliothèques -->
+Rust propose, via son groupe de travail sur la sécurité un certain nombre d'outils permettant de s'assurer de la sécurité de la supply-chain d'un programme au niveau de ses bibliothèques.
 
-<!--
-<mark>TODO</mark>: les blocs de code `unsafe` sont discutés dans le chapitre 
-suivant. Le développeur a besoin de s'assurer que ces types de blocs ne sont pas
-mal utilisés dans les dépendances de son projet.
--->
+### Cargo supply-chain
 
-<!--
-> ### Recommandation {{#check LIBS-UNSAFE | Vérification du code *unsafe* dans les dépendances}}
+[Cargo-supply-chain] est l'outil développé par le groupe de travail officiel de la fondation rust et qui collecte l'ensemble des personnes qui peuvent intervenir sur les bibliothèques utilisées par le projet.
+
+> ### Règle {{#check LIBS-SUPPLY-CHAIN | Vérification des développeurs implicitement de confiance}}
 >
-> <mark>TODO</mark>: vérifier qu'il n'y a pas de bloc `unsafe` dans les
-> dépendances (à l'aide d'un outil ?).
--->
+> L'outil `cargo-supply-chain` doit être utilisé afin de conaître les personnes à qui vous faites implicitement confiance pour le bon fonctionnement de votre projet.
+
+[cargo-supply-chain]: https://github.com/rust-secure-code/cargo-supply-chain
+### Cargo vet / crev
+
+[Cargo-vet] est un outil développé par la fondation mozilla et qui permet de vérifier si les librairies que vous pouvez utiliser son audité par des tiers de confiance.
+
+> ### Règle {{#check LIBS-VET | Utilisation en priorité de librairie ayant été audité}}
+>
+> Il est conseillé d'utiliser l'outil `cargo-vet` afin d'utiliser en priorité des librairies ayant été audités par des tiers.
+
+Les audits de sécurités peuvent être créés à l'aide d'un outil nommé [Cargo-crev]. L'utilisation de cet outil ne sera pas détaillée dans ce guide.
+
+Pour plus d'information, veuillez consulter la [documentation officielle] de l'outil.
+
+> ### Conseille
+>
+> Il est conseillés de faire d'audits de sécurités via l'outil `cargo-crev` afin de vérifier la sécurité 
+> des librairies utilisées dans votre projet et d'en faire profiter la communauté.
+
+[cargo-vet]: https://github.com/mozilla/cargo-vet
+[cargo-crev]: https://github.com/crev-dev/cargo-crev
+[documentation officielle]: https://github.com/crev-dev/cargo-crev/blob/main/cargo-crev/src/doc/getting_started.md
+## Code *unsafe* dans les bibliothèques
+
+[Cargo-geiger] est un outil maintenu par le groupe de travail permettant de sécuriser Rust.
+Son but est de détecter l'utilisation du block `unsafe` dans la supply-chain d'un projet.
+
+Les résultats possèdent trois niveaux : 
+1) 🔒  = pas d'utilisation du bloc  `unsafe` trouvée, la ligne #![forbid(unsafe_code)] est déclarés
+2) ❓  = pas d'utilisation du bloc `unsafe` trouvée, la ligne n'est pas  #![forbid(unsafe_code)] est déclarés
+3) ☢️   = utilisation de bloc `unsafe` trouvée dans le code
+
+> ### Règle {{#check LIBS-UNSAFE | Vérification du code *unsafe* dans les dépendances}}
+>
+> Utiliser l'outil `cargo-geiger` afin de vérifier que les usages du block `unsafe` respectent bien les recommandations décrites dans la section suivantes de ce guide.
+
+> Attention
+>
+> To date, the `cargo-geiger` tool does not take into account when #![forbid(unsafe_code)] is in its second form in the `Cargo.toml` file.
+
+[cargo-geiger]: https://github.com/geiger-rs/cargo-geiger
